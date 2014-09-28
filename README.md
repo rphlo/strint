@@ -23,11 +23,16 @@ The following operations are available:
 * `negate(x)`
 
 Interaction:
-
-    > StrInt.add("9007199254740992", "1")
-    '9007199254740993'
+    <script src="strint.js"></script>
+    <script>
+      console.log(StrInt.add("9007199254740992", "1"))
+    </script>
+    
+    > '9007199254740993'
 
 Compare:
-
-    > 9007199254740992 + 1
-    9007199254740992
+    <script>
+      console.log(9007199254740992 + 1)
+    </script>
+    
+    > 9007199254740992
