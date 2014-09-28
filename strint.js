@@ -1,20 +1,15 @@
-"use strict";
-
-if (typeof define !== 'function') { var define = require('amdefine')(module) }
-
-define(function () {
-    
-    var e = {};
+var StrInt = (function () {
+    var e = {},
+        ONE = '1',
+        ZERO = '0';
 
     //------------------- Addition
-
-    var subPositive = e.subPositive = function (x, y) {
+    var subPositive = function (x, y) {
         forcePositiveString(x);
         forcePositiveString(y);
-        if (! ge(x, y)) {
+        if (! gte(x, y)) {
             throw new Error("x must be greater or equal to y");
         }
-
         var maxLength = Math.max(x.length, y.length);
         var result = "";
         var borrow = 0;
@@ -28,20 +23,19 @@ define(function () {
                 borrow++;
             }
             var digit = String(lhs - rhs);
-            if (digit !== "0") {
+            if (digit !== ZERO) {
                 result = digit + prefixZeros(result, leadingZeros);
                 leadingZeros = 0;
             } else {
                 leadingZeros++;
             }
         }
-        return result.length === 0 ? "0" : result;
+        return result.length === 0 ? ZERO : result;
     }
 
     var addPositive = function (x, y) {
         forcePositiveString(x);
         forcePositiveString(y);
-
         var maxLength = Math.max(x.length, y.length);
         var result = "";
         var borrow = 0;
@@ -62,15 +56,18 @@ define(function () {
                 leadingZeros = 0;
             }
         }
-        if (borrow > 0) {
+        if(leadingZeros > 0){
+            result = prefixZeros(result, leadingZeros)
+        }
+        if(borrow > 0){
             result = String(borrow) + result;
         }
         return result;
     }
+
     var add = e.add = function (x, y) {
         forceString(x);
         forceString(y);
-
         if (isPositive(x) && isPositive(y)) {
             return addPositive(x, y);
         } else if (isNegative(x) && isNegative(y)) {
@@ -93,23 +90,22 @@ define(function () {
         }
     }
 
+    //------------------- Substraction
     var sub = e.sub = function (x, y) {
         forceString(x);
         forceString(y);
         return add(x, negate(y));
     }
-
     //------------------- Multiplication
-
-    var mulDigit = e.timesDigit = function (strint, digit) {
-        forcePositiveString(strint);
+    var mulDigit = function (str_int, digit) {
+        forcePositiveString(str_int);
         forceNumber(digit);
         var result = "";
-        var digitCount = getDigitCount(strint);
+        var digitCount = getDigitCount(str_int);
         var carry = 0;
         var leadingZeros = 0;
         for(var i=0; i<digitCount; i++) {
-            var digitResult = (Number(getDigit(strint, i)) * digit) + carry;
+            var digitResult = (Number(getDigit(str_int, i)) * digit) + carry;
             carry = 0;
             while(digitResult >= 10) {
                 digitResult -= 10;
@@ -123,28 +119,25 @@ define(function () {
             }
         }
         if (carry > 0) {
-            result = String(carry) + result;
+            result = String(carry) + prefixZeros(result, leadingZeros);
         }
-        return result.length === 0 ? "0" : result;
+        return result.length === 0 ? ZERO : result;
     }
-
-
-    var mulPositive = e.mulPositive = function (lhs, rhs) {
+    var mulPositive = function (lhs, rhs) {
         /* Example via http://en.wikipedia.org/wiki/Multiplication_algorithm
-                23958233
-                    5830 ×
-            ------------
-                00000000 ( =      23,958,233 ×     0)
-               71874699  ( =      23,958,233 ×    30)
-             191665864   ( =      23,958,233 ×   800)
-            119791165    ( =      23,958,233 × 5,000)
-            ------------
-            139676498390 ( = 139,676,498,390        )
-         */
-
+            23958233
+                5830 ×
+        ------------
+            00000000 ( = 23,958,233 × 0)
+            71874699 ( = 23,958,233 × 30)
+           191665864 ( = 23,958,233 × 800)
+           119791165 ( = 23,958,233 × 5,000)
+        ------------
+        139676498390 ( = 139,676,498,390 )
+        */
         forcePositiveString(lhs);
         forcePositiveString(rhs);
-        var result = "0";
+        var result = ZERO;
         var digitCount = getDigitCount(rhs);
         for(var i=0; i<digitCount; i++) {
             var singleRow = mulDigit(lhs, Number(getDigit(rhs, i)));
@@ -153,62 +146,79 @@ define(function () {
         }
         return result;
     }
-
     var mul = e.mul = function (lhs, rhs) {
         forceString(lhs);
         forceString(rhs);
-
         var absResult = mulPositive(abs(lhs), abs(rhs));
         return (sameSign(lhs, rhs) ? absResult : negate(absResult));
     }
 
-    //------------------- Division
+    //------------------- Power
+    var pow = e.pow = function(lhs, exp){
+        forceString(lhs);
+        forceString(exp);
+        var isNeg = isNegative(exp),
+            x = lhs,
+            y = ONE;
+        for ( exp = (isNeg ? negate(exp) : exp); ; ) {
+            if (isOdd(exp)) {
+                y = mul(y, x)
+            }
+            exp = div(exp, '2');
+            if (eq(exp, ZERO)) {
+                break
+            }
+            x = mul(x, x)
+        }
+        return isNeg ? div('1', y) : y
+    }
 
-    var quotientRemainderPositive = e.quotientRemainderPositive = function (dividend, divisor) {
+    //------------------- Division
+    var quotientRemainderPositive = function (dividend, divisor) {
         /*
         Example division: 290 / 15
 
-        29|0 = 0  // digits larger, can subtract
+        29|0 = 0 // digits larger, can subtract
         15
 
-        14|0 = 1  // digits smaller, must shift
+        14|0 = 1 // digits smaller, must shift
         15
 
-        140| = 10  // digits are 140, can subtract 9 times
-         15
+        140| = 10 // digits are 140, can subtract 9 times
+        15
 
         (9 subtractions omitted)
 
-          5| = 19  // divisor is now larger than the dividend, we are done: [19, 5]
-         15
-         */
-
+        5| = 19 // divisor is now larger than the dividend, we are done: [19, 5]
+        15
+        */
         forcePositiveString(dividend);
         forcePositiveString(divisor);
 
         if (eq(dividend, divisor)) {
-            return [ "1", "0" ];
+            return [ONE, ZERO];
         }
         if (gt(divisor, dividend)) {
-            return [ "0", normalize(dividend) ];
+            return [ZERO, normalize(dividend)];
         }
-        var quotient = "0";
+        var quotient = ZERO;
         var remainingDigits = dividend.length - divisor.length;
 
         while(true) {
             var digits = dividend.slice(0, dividend.length - remainingDigits);
 
             // Subtract as long as possible and count the times
-            while (ge(digits, divisor)) {
+            while (gte(digits, divisor)) {
                 digits = sub(digits, divisor);
-                quotient = add(quotient, "1");
+                quotient = add(quotient, ONE);
             }
             dividend = digits + dividend.slice(dividend.length - remainingDigits);
 
             // Done already?
-            if (gt(divisor, dividend)) { // holds (at the lastest) at remainingDigits === 0
+            if (gt(divisor, dividend)) {
+                // holds (at the lastest) at remainingDigits === 0
                 quotient = shiftLeft(quotient, remainingDigits);
-                return [ quotient, normalize(dividend) ];
+                return [ normalize(quotient), normalize(dividend) ];
             }
 
             // Not done, shift
@@ -220,16 +230,40 @@ define(function () {
         }
     };
 
-    var div = e.div = function (dividend, divisor) {
+    var divmod = e.divmod = function (dividend, divisor) {
         forceString(dividend);
         forceString(divisor);
-
-        var absResult = quotientRemainderPositive(abs(dividend), abs(divisor))[0];
-        return (sameSign(dividend, divisor) ? absResult : negate(absResult));
+        var absResult = quotientRemainderPositive(abs(dividend), abs(divisor));
+        absQuotient = absResult[0];
+        absRemainder = absResult[1];
+        remainder = absRemainder;
+        quotient = absQuotient;
+        if(isNegative(divisor)){
+            remainder = negate(remainder);
+        }
+        if(!sameSign(divisor, dividend)){
+            if(!eq(remainder, ZERO)){
+                quotient = negate(add(ONE, absQuotient));
+                remainder = add(divisor, negate(remainder));
+            } else {
+                quotient = negate(absQuotient);
+            }
+        }
+        return [quotient, remainder];
     }
+    var div = e.div = function (dividend, divisor){
+        forceString(dividend);
+        forceString(divisor);
+        return divmod(dividend, divisor)[0]
+    }
+    //------------------- Modulus
+    mod = e.mod = function ( dividend, divisor ) {
+        forceString(dividend);
+        forceString(divisor);
+        return divmod(dividend, divisor)[1]
+    };
 
     //------------------- Comparisons
-
     var eq = e.eq = function (lhs, rhs) {
         return normalize(lhs) === normalize(rhs);
     }
@@ -257,18 +291,25 @@ define(function () {
         }
     }
 
+    var lte = e.lte = function (lhs, rhs) {
+        if (eq(lhs, rhs)){
+            return true;
+        }
+        return lt(lhs, rhs);
+    }
+
     // x >= y <=> !(x < y)
-    var ge = e.ge = function (lhs, rhs) {
+    var gte = e.gte = function (lhs, rhs) {
         return !lt(lhs, rhs);
     }
 
+    // x > y <=> !(x <= y)
     var gt = e.gt = function (lhs, rhs) {
-        if (eq(lhs, rhs)) return false;
-        return ge(lhs, rhs);
+        return !lte(lhs, rhs);
     }
 
-    //------------------- Signs
 
+    //------------------- Signs
     var isNegative = e.isNegative = function (strint) {
         forceString(strint);
         return (strint.indexOf("-") === 0);
@@ -292,8 +333,8 @@ define(function () {
     }
 
     var negate = e.negate = function (strint) {
-        if (strint === "0") {
-            return "0";
+        if (strint === ZERO) {
+            return ZERO;
         }
         if (isNegative(strint)) {
             return strint.slice(1);
@@ -302,13 +343,22 @@ define(function () {
         }
     }
 
-    //------------------- Helpers
+    //------------------- Parity
+    var isOdd = e.isOdd = function(strint){
+        return parseInt(getDigit(strint, 0)) & 1 === 1;
+    }
 
+    // Actually: isNotOdd
+    var isEven = e.isEven = function(strint){
+        return !isOdd(strint);
+    }
+
+    //------------------- Helpers
     var RE_NON_ZERO = /^(-?)0*([1-9][0-9]*)$/;
     var RE_ZERO = /^0+$/;
     var normalize = e.normalize = function (strint) {
         if (RE_ZERO.test(strint)) {
-            return "0";
+            return ZERO;
         }
         var match = RE_NON_ZERO.exec(strint);
         if (!match) {
@@ -318,43 +368,39 @@ define(function () {
     }
 
     /**
-     * Prefix zeros until the length of the number is `digitCount`.
-     */
+    * Prefix zeros until the length of the number is `digitCount`.
+    */
     var leftPadZeros = function (strint, digitCount) {
         forcePositiveString(strint);
         forceNonNegativeNumber(digitCount);
-
         return prefixZeros(strint, digitCount-strint.length);
     }
-
     var prefixZeros = function (strint, zeroCount) {
         forcePositiveString(strint);
         forceNonNegativeNumber(zeroCount);
-
         var result = strint;
         for(var i=0; i<zeroCount; i++) {
-            result = "0" + result;
+            result = ZERO + result;
         }
         return result;
     }
-
     function shiftLeft(strint, digitCount) {
         while(digitCount > 0) {
-            strint = strint + "0";
+            strint = strint + ZERO;
             digitCount--;
         }
         return strint;
     }
 
     /**
-     * Works for negative numbers, too.
-     * Index of rightmost digit is 0. Going too far left results in "0".
-     */
+    * Works for negative numbers, too.
+    * Index of rightmost digit is 0. Going too far left results in "0".
+    */
     var getDigit = function (x, digitIndex) {
         forceString(x);
         forceNumber(digitIndex);
         if (digitIndex >= getDigitCount(x)) {
-            return "0";
+            return ZERO;
         } else {
             return x.charAt(x.length - digitIndex - 1);
         }
@@ -367,9 +413,7 @@ define(function () {
             return strint.length;
         }
     }
-
     //------------------- Type checks
-
     function forceString(value) {
         forceType(value, "string");
     }
@@ -396,8 +440,6 @@ define(function () {
             throw new Error("Not a "+type+": "+value);
         }
     }
-
     //-------------------
-
     return e;
-});
+})();
