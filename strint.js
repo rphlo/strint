@@ -1,8 +1,8 @@
-var StrInt = (function () {
-    var e = {},
-        ONE = '1',
-        ZERO = '0';
-
+;
+var strInt = (function () {
+    var	e = {};
+    var ONE = '1';
+    var ZERO = '0';
     //------------------- Addition
     var subPositive = function (x, y) {
         forcePositiveString(x);
@@ -31,8 +31,7 @@ var StrInt = (function () {
             }
         }
         return result.length === 0 ? ZERO : result;
-    }
-
+    };
     var addPositive = function (x, y) {
         forcePositiveString(x);
         forcePositiveString(y);
@@ -57,14 +56,13 @@ var StrInt = (function () {
             }
         }
         if(leadingZeros > 0){
-            result = prefixZeros(result, leadingZeros)
+            result = prefixZeros(result, leadingZeros);
         }
         if(borrow > 0){
             result = String(borrow) + result;
         }
         return result;
-    }
-
+    };
     var add = e.add = function (x, y) {
         forceString(x);
         forceString(y);
@@ -88,24 +86,23 @@ var StrInt = (function () {
                 return negate(absResult);
             }
         }
-    }
-
+    };
     //------------------- Substraction
     var sub = e.sub = function (x, y) {
         forceString(x);
         forceString(y);
         return add(x, negate(y));
-    }
+    };
     //------------------- Multiplication
-    var mulDigit = function (str_int, digit) {
-        forcePositiveString(str_int);
+    var mulDigit = function (strint, digit) {
+        forcePositiveString(strint);
         forceNumber(digit);
         var result = "";
-        var digitCount = getDigitCount(str_int);
+        var digitCount = getDigitCount(strint);
         var carry = 0;
         var leadingZeros = 0;
         for(var i=0; i<digitCount; i++) {
-            var digitResult = (Number(getDigit(str_int, i)) * digit) + carry;
+            var digitResult = (Number(getDigit(strint, i)) * digit) + carry;
             carry = 0;
             while(digitResult >= 10) {
                 digitResult -= 10;
@@ -122,18 +119,19 @@ var StrInt = (function () {
             result = String(carry) + prefixZeros(result, leadingZeros);
         }
         return result.length === 0 ? ZERO : result;
-    }
+    };
     var mulPositive = function (lhs, rhs) {
-        /* Example via http://en.wikipedia.org/wiki/Multiplication_algorithm
-            23958233
-                5830 ×
-        ------------
-            00000000 ( = 23,958,233 × 0)
-            71874699 ( = 23,958,233 × 30)
-           191665864 ( = 23,958,233 × 800)
-           119791165 ( = 23,958,233 × 5,000)
-        ------------
-        139676498390 ( = 139,676,498,390 )
+        /* Example via
+		    *  http://en.wikipedia.org/wiki/Multiplication_algorithm
+        *     23958233
+        *         5830 ×
+        * ------------
+        *     00000000 ( = 23,958,233 × 0)
+        *     71874699 ( = 23,958,233 × 30)
+        *    191665864 ( = 23,958,233 × 800)
+        *    119791165 ( = 23,958,233 × 5,000)
+        * ------------
+        * 139676498390 ( = 139,676,498,390 )
         */
         forcePositiveString(lhs);
         forcePositiveString(rhs);
@@ -145,33 +143,32 @@ var StrInt = (function () {
             result = addPositive(result, singleRow);
         }
         return result;
-    }
+    };
     var mul = e.mul = function (lhs, rhs) {
         forceString(lhs);
         forceString(rhs);
         var absResult = mulPositive(abs(lhs), abs(rhs));
         return (sameSign(lhs, rhs) ? absResult : negate(absResult));
-    }
-
+    };
     //------------------- Power
     var pow = e.pow = function(lhs, exp){
+        var isNeg = isNegative(exp);
+        var x = lhs;
+        var y = ONE;
         forceString(lhs);
         forceString(exp);
-        var isNeg = isNegative(exp),
-            x = lhs,
-            y = ONE;
         for ( exp = (isNeg ? negate(exp) : exp); ; ) {
             if (isOdd(exp)) {
-                y = mul(y, x)
+                y = mul(y, x);
             }
             exp = div(exp, '2');
             if (eq(exp, ZERO)) {
-                break
+                break;
             }
-            x = mul(x, x)
+            x = mul(x, x);
         }
-        return isNeg ? div('1', y) : y
-    }
+        return isNeg ? div('1', y) : y;
+    };
 
     //------------------- Division
     var quotientRemainderPositive = function (dividend, divisor) {
@@ -194,7 +191,6 @@ var StrInt = (function () {
         */
         forcePositiveString(dividend);
         forcePositiveString(divisor);
-
         if (eq(dividend, divisor)) {
             return [ONE, ZERO];
         }
@@ -203,33 +199,28 @@ var StrInt = (function () {
         }
         var quotient = ZERO;
         var remainingDigits = dividend.length - divisor.length;
-
         while(true) {
             var digits = dividend.slice(0, dividend.length - remainingDigits);
-
             // Subtract as long as possible and count the times
             while (gte(digits, divisor)) {
                 digits = sub(digits, divisor);
                 quotient = add(quotient, ONE);
             }
             dividend = digits + dividend.slice(dividend.length - remainingDigits);
-
             // Done already?
             if (gt(divisor, dividend)) {
                 // holds (at the lastest) at remainingDigits === 0
                 quotient = shiftLeft(quotient, remainingDigits);
-                return [ normalize(quotient), normalize(dividend) ];
+                return [normalize(quotient), normalize(dividend)];
             }
-
             // Not done, shift
             remainingDigits--;
             quotient = shiftLeft(quotient, 1);
             if (remainingDigits < 0) {
                 throw new Error("Illegal state");
             }
-        }
+        };
     };
-
     var divmod = e.divmod = function (dividend, divisor) {
         forceString(dividend);
         forceString(divisor);
@@ -250,24 +241,25 @@ var StrInt = (function () {
             }
         }
         return [quotient, remainder];
-    }
+    };
     var div = e.div = function (dividend, divisor){
         forceString(dividend);
         forceString(divisor);
+        if (eq(divisor, ZERO)) {
+          throw new Error("Can not divide by zero");
+        }
         return divmod(dividend, divisor)[0]
-    }
+    };
     //------------------- Modulus
     mod = e.mod = function ( dividend, divisor ) {
         forceString(dividend);
         forceString(divisor);
         return divmod(dividend, divisor)[1]
     };
-
     //------------------- Comparisons
     var eq = e.eq = function (lhs, rhs) {
         return normalize(lhs) === normalize(rhs);
-    }
-
+    };
     var ltPositive = function (x, y) {
         if (isNegative(x) || isNegative(y)) {
             throw new Error("Both operands must be positive: "+x+" "+y);
@@ -276,8 +268,7 @@ var StrInt = (function () {
         var lhs = leftPadZeros(x, maxLength);
         var rhs = leftPadZeros(y, maxLength);
         return lhs < rhs; // lexicographical comparison
-    }
-
+    };
     var lt = e.lt = function (lhs, rhs) {
         if (isNegative(lhs) && isPositive(rhs)) {
             return true;
@@ -289,37 +280,32 @@ var StrInt = (function () {
         } else {
             return ltPositive(lhs, rhs);
         }
-    }
-
+    };
     var lte = e.lte = function (lhs, rhs) {
         if (eq(lhs, rhs)){
             return true;
         }
         return lt(lhs, rhs);
-    }
-
+    };
     // x >= y <=> !(x < y)
     var gte = e.gte = function (lhs, rhs) {
         return !lt(lhs, rhs);
-    }
-
+    };
     // x > y <=> !(x <= y)
     var gt = e.gt = function (lhs, rhs) {
         return !lte(lhs, rhs);
-    }
-
-
-    //------------------- Signs
+    };
+    /*
+	* Signs
+	*/
     var isNegative = e.isNegative = function (strint) {
         forceString(strint);
         return (strint.indexOf("-") === 0);
     }
-
     // Actually: isNonNegative
     var isPositive = e.isPositive = function (strint) {
         return !isNegative(strint);
     }
-
     var abs = e.abs = function (strint) {
         if (isNegative(strint)) {
             return negate(strint);
@@ -327,11 +313,9 @@ var StrInt = (function () {
             return strint;
         }
     }
-
     function sameSign(lhs, rhs) {
         return isPositive(lhs) === isPositive(rhs);
     }
-
     var negate = e.negate = function (strint) {
         if (strint === ZERO) {
             return ZERO;
@@ -342,18 +326,21 @@ var StrInt = (function () {
             return "-"+strint;
         }
     }
-
-    //------------------- Parity
+    /*
+	  * Parity Checks
+	  */
     var isOdd = e.isOdd = function(strint){
         return parseInt(getDigit(strint, 0)) & 1 === 1;
     }
-
-    // Actually: isNotOdd
+    /*
+	  * Actually: isNotOdd
+	  */
     var isEven = e.isEven = function(strint){
         return !isOdd(strint);
     }
-
-    //------------------- Helpers
+    /**
+	  * Helpers
+	  */
     var RE_NON_ZERO = /^(-?)0*([1-9][0-9]*)$/;
     var RE_ZERO = /^0+$/;
     var normalize = e.normalize = function (strint) {
@@ -366,7 +353,6 @@ var StrInt = (function () {
         }
         return match[1]+match[2];
     }
-
     /**
     * Prefix zeros until the length of the number is `digitCount`.
     */
@@ -374,7 +360,7 @@ var StrInt = (function () {
         forcePositiveString(strint);
         forceNonNegativeNumber(digitCount);
         return prefixZeros(strint, digitCount-strint.length);
-    }
+    };
     var prefixZeros = function (strint, zeroCount) {
         forcePositiveString(strint);
         forceNonNegativeNumber(zeroCount);
@@ -383,7 +369,7 @@ var StrInt = (function () {
             result = ZERO + result;
         }
         return result;
-    }
+    };
     function shiftLeft(strint, digitCount) {
         while(digitCount > 0) {
             strint = strint + ZERO;
@@ -391,11 +377,6 @@ var StrInt = (function () {
         }
         return strint;
     }
-
-    /**
-    * Works for negative numbers, too.
-    * Index of rightmost digit is 0. Going too far left results in "0".
-    */
     var getDigit = function (x, digitIndex) {
         forceString(x);
         forceNumber(digitIndex);
@@ -404,16 +385,17 @@ var StrInt = (function () {
         } else {
             return x.charAt(x.length - digitIndex - 1);
         }
-    }
-
+    };
     var getDigitCount = function (strint) {
         if (isNegative(strint)) {
             return strint.length -1;
         } else {
             return strint.length;
         }
-    }
-    //------------------- Type checks
+    };
+    /**
+	  * Type checks
+	  */
     function forceString(value) {
         forceType(value, "string");
     }
@@ -427,19 +409,18 @@ var StrInt = (function () {
     function forceNonNegativeNumber(value) {
         forceType(value, "number");
         if (value < 0) {
-            throw new Error("Expected a positive number: "+value);
+            throw new Error("Expected a positive number: " + value);
         }
     }
     function forceCondition(value, condition, conditionName) {
         if (!condition.call(null, value)) {
-            throw new Error("Condition "+conditionName+" failed for value "+value);
+            throw new Error("Condition " + conditionName + " failed for value " + value);
         }
     }
     function forceType(value, type) {
         if (typeof value !== type) {
-            throw new Error("Not a "+type+": "+value);
+            throw new Error("Not a " + type+ ": " +value);
         }
     }
-    //-------------------
     return e;
 })();

@@ -1,4 +1,4 @@
-# strint – a JavaScript library for string-encoded integers
+# strInt – a JavaScript library for string-encoded integers
 
 This library lets you work with arbitrarily large integers, by storing them in strings. The focus has been on ease of understanding, not on performance. This library should still be useful for applications where performance isn’t critical, but you need to work with large integers.
 
@@ -12,17 +12,19 @@ The following operations are available:
 * `add(x, y)`
 * `sub(x, y)`
 * `mul(x, y)`
-* `divmod(x, y)`
+* `divMod(x, y)`
 * `div(x, y)`
 * `mod(x, y)`
 * `abs(x)`
+* `negate(x)`
 * `isNegative(x)`
 * `isPositive(x)`
-* `negate(x)`
+* `isOdd(x)`
+* `isEven(x)`
 
 Interaction:
 
-    console.log(StrInt.add("9007199254740992", "1"))
+    console.log(strInt.add("9007199254740992", "1"))
     > '9007199254740993'
 
 Compare:
