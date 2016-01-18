@@ -2,6 +2,8 @@
 
 This library lets you work with arbitrarily large integers, by storing them in strings. The focus has been on ease of understanding, not on performance. This library should still be useful for applications where performance isn’t critical, but you need to work with large integers.
 
+Forked to work in the browser.
+
 The following operations are available:
 
 * `lt(x, y)`: is x < y (“less than”)?
